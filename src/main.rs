@@ -1,18 +1,17 @@
-use serenity::async_trait;
+//! Discord bot for Synixe Contractors Discord server.
+
 use serenity::client::bridge::gateway::GatewayIntents;
-use serenity::client::{Client, Context, EventHandler};
-use serenity::framework::standard::{
-    macros::{command, group},
-    CommandResult, StandardFramework,
-};
-use serenity::model::channel::Message;
-use serenity::model::guild::Member;
-use serenity::model::id::{ChannelId, GuildId};
-use serenity::model::prelude::{Ready, User};
+use serenity::framework::standard::macros::{command, group};
+use serenity::framework::standard::CommandResult;
+use serenity::framework::StandardFramework;
+use serenity::model::prelude::*;
+use serenity::prelude::*;
 
-use std::env;
+use serenity::async_trait;
 
-const LOG_CHANNEL_ID: u64 = 700943290102448208;
+const DISCORD_CHANNEL_LOBBY: u64 = 700_888_247_928_356_908;
+const DISCORD_CHANNEL_LOG: u64 = 700_943_290_102_448_208;
+const DISCORD_GUILD_SYNIXE: u64 = 700_888_247_928_356_905;
 
 #[group]
 #[commands(ping)]
@@ -31,8 +30,8 @@ impl EventHandler for Handler {
             println!("Skipping bot");
             return;
         }
-        if guild_id.0 == 700888247928356905 {
-            ChannelId(700888247928356908)
+        if guild_id.0 == DISCORD_GUILD_SYNIXE {
+            ChannelId(DISCORD_CHANNEL_LOBBY)
                 .send_message(&_ctx, |m| {
                     m.content(&format!(
                         "Welcome <@{}>! Please follow the steps in <#700888595850068101> to get prepared to jump in game with us. If you have any questions, feel free to ask here!",
@@ -55,8 +54,8 @@ impl EventHandler for Handler {
             println!("Skipping bot");
             return;
         }
-        if guild_id.0 == 700888247928356905 {
-            ChannelId(LOG_CHANNEL_ID)
+        if guild_id.0 == DISCORD_GUILD_SYNIXE {
+            ChannelId(DISCORD_CHANNEL_LOG)
                 .send_message(&ctx, |m| {
                     m.content(&format!(
                         "{}#{} ({}) has left, <@{}>",
@@ -73,8 +72,8 @@ impl EventHandler for Handler {
             println!("Skipping bot");
             return;
         }
-        if guild_id.0 == 700888247928356905 {
-            ChannelId(LOG_CHANNEL_ID)
+        if guild_id.0 == DISCORD_GUILD_SYNIXE {
+            ChannelId(DISCORD_CHANNEL_LOG)
                 .send_message(&ctx, |m| {
                     m.content(&format!(
                         "{}#{} ({}) was banned, <@{}>",
@@ -94,7 +93,7 @@ async fn main() {
         .group(&GENERAL_GROUP);
 
     // Login with a bot token from the environment
-    let token = env::var("DISCORD_TOKEN").expect("token");
+    let token = std::env::var("DISCORD_TOKEN").expect("token");
     let mut client = Client::builder(token)
         .intents(
             GatewayIntents::GUILDS | GatewayIntents::GUILD_MESSAGES | GatewayIntents::GUILD_MEMBERS,
@@ -104,7 +103,6 @@ async fn main() {
         .await
         .expect("Error creating client");
 
-    // start listening for events by starting a single shard
     if let Err(why) = client.start().await {
         println!("An error occurred while running the client: {:?}", why);
     }
