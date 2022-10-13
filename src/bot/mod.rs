@@ -1,16 +1,26 @@
 //! Discord bot for Synixe Contractors Discord server.
 
-use serenity::framework::standard::macros::{command, group};
-use serenity::framework::standard::CommandResult;
-use serenity::framework::StandardFramework;
-use serenity::model::prelude::*;
-use serenity::prelude::*;
+use serenity::{
+    framework::{
+        standard::{
+            macros::{command, group},
+            CommandResult,
+        },
+        StandardFramework,
+    },
+    model::{application::interaction::Interaction, prelude::*},
+    prelude::*,
+};
 
 use serenity::async_trait;
 
-pub const DISCORD_CHANNEL_LOBBY: u64 = 700_888_247_928_356_908;
-pub const DISCORD_CHANNEL_LOG: u64 = 700_943_290_102_448_208;
-pub const DISCORD_GUILD_SYNIXE: u64 = 700_888_247_928_356_905;
+pub const DISCORD_GUILD_SYNIXE: GuildId = GuildId(700_888_247_928_356_905);
+pub const DISCORD_CHANNEL_LOBBY: ChannelId = ChannelId(700_888_247_928_356_908);
+pub const DISCORD_CHANNEL_LOG: ChannelId = ChannelId(700_943_290_102_448_208);
+pub const DISCORD_CHANNEL_SCHEDULE: ChannelId = ChannelId(700_888_805_137_318_039);
+pub const DISCORD_CHANNEL_PLANNING: ChannelId = ChannelId(883_455_598_203_650_088);
+
+mod slash;
 
 #[group]
 #[commands(ping)]
@@ -20,8 +30,30 @@ struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
-    async fn ready(&self, _: Context, ready: Ready) {
+    async fn ready(&self, ctx: Context, ready: Ready) {
         println!("{} is connected!", ready.user.name);
+
+        let commands =
+            GuildId::set_application_commands(&DISCORD_GUILD_SYNIXE, &ctx.http, |commands| {
+                commands.create_application_command(|command| slash::meme::register(command))
+            })
+            .await;
+
+        println!(
+            "I now have the following guild slash commands: {:#?}",
+            commands
+        );
+    }
+
+    async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
+        if let Interaction::ApplicationCommand(command) = interaction {
+            println!("Received command interaction: {:#?}", command);
+
+            match command.data.name.as_str() {
+                "meme" => slash::meme::run(&ctx, &command).await,
+                _ => {}
+            }
+        }
     }
 
     async fn guild_member_addition(&self, _ctx: Context, new_member: Member) {
@@ -30,7 +62,7 @@ impl EventHandler for Handler {
             return;
         }
         if new_member.guild_id == DISCORD_GUILD_SYNIXE {
-            ChannelId(DISCORD_CHANNEL_LOBBY)
+            DISCORD_CHANNEL_LOBBY
                 .send_message(&_ctx, |m| {
                     m.content(&format!(
                         "Welcome <@{}>! Please follow the steps in <#700888595850068101> to get prepared to jump in game with us. If you have any questions, feel free to ask here!",
@@ -53,8 +85,8 @@ impl EventHandler for Handler {
             println!("Skipping bot");
             return;
         }
-        if guild_id.0 == DISCORD_GUILD_SYNIXE {
-            ChannelId(DISCORD_CHANNEL_LOG)
+        if guild_id == DISCORD_GUILD_SYNIXE {
+            DISCORD_CHANNEL_LOG
                 .send_message(&ctx, |m| {
                     m.content(&format!(
                         "{}#{} ({}) has left, <@{}>",
@@ -71,8 +103,8 @@ impl EventHandler for Handler {
             println!("Skipping bot");
             return;
         }
-        if guild_id.0 == DISCORD_GUILD_SYNIXE {
-            ChannelId(DISCORD_CHANNEL_LOG)
+        if guild_id == DISCORD_GUILD_SYNIXE {
+            DISCORD_CHANNEL_LOG
                 .send_message(&ctx, |m| {
                     m.content(&format!(
                         "{}#{} ({}) was banned, <@{}>",
